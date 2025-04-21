@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Media Gallery</title>
+  <style>
+    :root {
+      --primary-color: #4a6fa5;
+      --secondary-color: #166088;
+      --dark-bg: #0f0f0f;
+      --light-text: #ffffff;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      --gallery-gap: 20px;
+      --media-per-row: 4;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--dark-bg);
+      color: var(--light-text);
+      overflow-x: hidden;
+    }
+
+    /* Password Protection Styles */
+    #password-protection {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      flex-direction: column;
+    }
+
+    #password-form {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+      backdrop-filter: blur(10px);
+    }
+
+    #password-form h2 {
+      margin-top: 0;
+      color: var(--primary-color);
+    }
+
+    #password-input {
+      width: 100%;
+      padding: 12px;
+      margin: 15px 0;
+      border: none;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      font-size: 1rem;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    #password-input:focus {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    #password-submit {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: bold;
+      transition: var(--transition);
+    }
+
+    #password-submit:hover {
+      background: var(--secondary-color);
+      transform: translateY(-2px);
+    }
+
+    #password-error {
+      color: #ff6b6b;
+      margin-top: 10px;
+      height: 20px;
+    }
+
+    /* Gallery Styles (hidden by default) */
+    #gallery-content {
+      display: none;
+    }
+
+    h1 {
+      text-align: center;
+      padding: 20px;
+      font-size: 2.5em;
+      margin: 0;
+      background: linear-gradient(90deg, #4a6fa5, #166088);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .media-section {
+      width: 100%;
+    }
+
+    .media-section h2 {
+      margin-bottom: 15px;
+      padding-left: 10px;
+      color: var(--primary-color);
+    }
+
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: var(--gallery-gap);
+      width: 100%;
+    }
+
+    .media-item {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+      aspect-ratio: 16/9;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .media-thumbnail {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: var(--transition);
+      background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
+    }
+
+    .media-item:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .media-item:hover .media-thumbnail {
+      transform: scale(1.05);
+    }
+
+    .media-type {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      z-index: 1;
+    }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.9);
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal-content-container {
+      position: relative;
+      width: 90vw;
+      height: 90vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 12px;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.6);
+      animation: zoomIn 0.3s ease;
+      object-fit: contain;
+    }
+
+    @keyframes zoomIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-controls {
+      position: absolute;
+      top: 50%;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      transform: translateY(-50%);
+      padding: 0 20px;
+      pointer-events: none;
+    }
+
+    .control {
+      font-size: 3rem;
+      cursor: pointer;
+      user-select: none;
+      color: white;
+      background: rgba(0, 0, 0, 0.5);
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      pointer-events: auto;
+      transition: var(--transition);
+      opacity: 0.7;
+    }
+
+    .control:hover {
+      opacity: 1;
+      background: rgba(0, 0, 0, 0.8);
+      transform: scale(1.1);
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 30px;
+      right: 30px;
+      font-size: 2rem;
+      cursor: pointer;
+      color: white;
+      background: rgba(0, 0, 0, 0.5);
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: var(--transition);
+      opacity: 0.7;
+    }
+
+    .close-btn:hover {
+      opacity: 1;
+      background: rgba(0, 0, 0, 0.8);
+      transform: rotate(90deg);
+    }
+
+    .download-btn {
+      position: absolute;
+      bottom: 30px;
+      right: 30px;
+      font-size: 1rem;
+      background: var(--primary-color);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0.9;
+    }
+
+    .download-btn:hover {
+      background: var(--secondary-color);
+      transform: translateY(-2px);
+      opacity: 1;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .download-btn::before {
+      content: "↓";
+      font-size: 1.2em;
+    }
+
+    /* Loading states */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100px;
+      gap: 10px;
+      grid-column: 1 / -1;
+    }
+
+    .loading-dot {
+      width: 12px;
+      height: 12px;
+      background: var(--primary-color);
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out;
+    }
+
+    .loading-dot:nth-child(1) {
+      animation-delay: -0.32s;
+    }
+
+    .loading-dot:nth-child(2) {
+      animation-delay: -0.16s;
+    }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+
+    .media-placeholder {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: rgba(255, 255, 255, 0.3);
+      font-size: 0.8rem;
+    }
+
+    .play-icon {
+      font-size: 2rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+      :root {
+        --media-per-row: 3;
+      }
+    }
+
+    @media (max-width: 900px) {
+      :root {
+        --media-per-row: 2;
+      }
+    }
+
+    @media (max-width: 768px) {
+      :root {
+        --gallery-gap: 15px;
+      }
+
+      .media-item {
+        aspect-ratio: 1/1;
+      }
+
+      .control {
+        width: 50px;
+        height: 50px;
+        font-size: 2.5rem;
+      }
+
+      .close-btn {
+        top: 20px;
+        right: 20px;
+        width: 40px;
+        height: 40px;
+        font-size: 1.5rem;
+      }
+
+      .download-btn {
+        bottom: 20px;
+        right: 20px;
+        padding: 10px 15px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      :root {
+        --media-per-row: 1;
+      }
+
+      .media-grid {
+        grid-template-columns: 1fr;
+      }
+
+      #password-form {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Password Protection Screen -->
+  <div id="password-protection">
+    <div id="password-form">
+      <h2>Enter Password</h2>
+      <input type="password" id="password-input" placeholder="Enter password..." autocomplete="off" />
+      <button id="password-submit">Submit</button>
+      <div id="password-error"></div>
+    </div>
+  </div>
+
+  <!-- Gallery Content (hidden until password is entered) -->
+  <div id="gallery-content">
+    <h1>🎞️ Media Gallery</h1>
+    <div id="gallery">
+      <div class="media-section">
+        <h2>Images</h2>
+        <div id="imageRow" class="media-grid">
+          <div class="loading">
+            <div class="loading-dot"></div>
+            <div class="loading-dot"></div>
+            <div class="loading-dot"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="media-section">
+        <h2>Videos</h2>
+        <div id="videoRow" class="media-grid">
+          <div class="loading">
+            <div class="loading-dot"></div>
+            <div class="loading-dot"></div>
+            <div class="loading-dot"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal" id="modal">
+      <span class="close-btn" id="closeBtn">&times;</span>
+      <div class="modal-content-container">
+        <div id="modalContent"></div>
+      </div>
+      <a id="downloadBtn" class="download-btn" href="#" download>Download</a>
+      <div class="modal-controls">
+        <span class="control" id="prevBtn">&#10094;</span>
+        <span class="control" id="nextBtn">&#10095;</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Password Protection
+    const PASSWORD = "ZIUA1"; // Set your password here
+    const passwordProtection = document.getElementById('password-protection');
+    const passwordInput = document.getElementById('password-input');
+    const passwordSubmit = document.getElementById('password-submit');
+    const passwordError = document.getElementById('password-error');
+    const galleryContent = document.getElementById('gallery-content');
+
+    function checkPassword() {
+      if (passwordInput.value === PASSWORD) {
+        passwordProtection.style.display = 'none';
+        galleryContent.style.display = 'block';
+        loadMedia(); // Load the gallery content
+      } else {
+        passwordError.textContent = 'Incorrect password, please try again';
+        passwordInput.value = '';
+        passwordInput.focus();
+      }
+    }
+
+    passwordSubmit.addEventListener('click', checkPassword);
+    passwordInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        checkPassword();
+      }
+    });
+
+    // Focus password input on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      passwordInput.focus();
+    });
+
+    // Configuration - replace with your GitHub details
+    const repoPath = "lampocf/media"; // Replace with your GitHub username/repo
+    const folder = "LTHHPOZE1"; // Folder where your media is stored
+    const imageRow = document.getElementById('imageRow');
+    const videoRow = document.getElementById('videoRow');
+
+    let mediaUrls = [];
+    let currentIndex = 0;
+    let activeMediaType = '';
+
+    // Fetch media from GitHub
+    async function loadMedia() {
+      try {
+        const response = await fetch(`https://api.github.com/repos/${repoPath}/contents/${folder}`);
+        if (!response.ok) throw new Error('Failed to fetch media');
+        
+        const files = await response.json();
+        
+        // Clear loading indicators
+        imageRow.innerHTML = '';
+        videoRow.innerHTML = '';
+        
+        // Process files
+        files.forEach(file => {
+          const ext = file.name.split('.').pop().toLowerCase();
+          const url = `https://cdn.jsdelivr.net/gh/${repoPath}@main/${folder}/${file.name}`;
+          
+          if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) {
+            addMediaItem(file.name, url, 'image', imageRow);
+            mediaUrls.push({ type: 'image', url, name: file.name });
+          } else if (["mp4", "webm", "ogg"].includes(ext)) {
+            addMediaItem(file.name, url, 'video', videoRow);
+            mediaUrls.push({ type: 'video', url, name: file.name });
+          }
+        });
+
+        // Hide empty sections
+        if (imageRow.children.length === 0) {
+          imageRow.innerHTML = '<p style="color: #aaa; padding: 20px; grid-column: 1 / -1;">No images found</p>';
+        }
+        if (videoRow.children.length === 0) {
+          videoRow.innerHTML = '<p style="color: #aaa; padding: 20px; grid-column: 1 / -1;">No videos found</p>';
+        }
+      } catch (error) {
+        console.error('Error loading media:', error);
+        imageRow.innerHTML = '<p style="color: #ff6b6b; padding: 20px; grid-column: 1 / -1;">Failed to load images</p>';
+        videoRow.innerHTML = '<p style="color: #ff6b6b; padding: 20px; grid-column: 1 / -1;">Failed to load videos</p>';
+      }
+    }
+
+    function addMediaItem(name, url, type, container) {
+      const mediaItem = document.createElement('div');
+      mediaItem.className = 'media-item';
+      
+      // Create placeholder
+      const placeholder = document.createElement('div');
+      placeholder.className = 'media-placeholder';
+      
+      if (type === 'image') {
+        // For images, we'll load the actual image but with lazy loading
+        const img = document.createElement('img');
+        img.className = 'media-thumbnail';
+        img.loading = "lazy";
+        img.alt = name;
+        img.style.display = 'none'; // Hide initially
+        
+        // Show placeholder until image loads
+        placeholder.textContent = 'Loading...';
+        mediaItem.appendChild(placeholder);
+        mediaItem.appendChild(img);
+        
+        // Load image after a small delay
+        setTimeout(() => {
+          img.src = url;
+          img.onload = () => {
+            placeholder.style.display = 'none';
+            img.style.display = 'block';
+          };
+          img.onerror = () => {
+            placeholder.textContent = 'Error loading image';
+          };
+        }, 100);
+      } else {
+        // For videos, just show a play icon
+        const playIcon = document.createElement('div');
+        playIcon.className = 'play-icon';
+        playIcon.innerHTML = '▶';
+        placeholder.appendChild(playIcon);
+        mediaItem.appendChild(placeholder);
+      }
+      
+      const typeBadge = document.createElement('div');
+      typeBadge.className = 'media-type';
+      typeBadge.textContent = type;
+      mediaItem.appendChild(typeBadge);
+      
+      mediaItem.addEventListener('click', () => {
+        activeMediaType = type;
+        const index = mediaUrls.findIndex(m => m.url === url);
+        openModal(index);
+      });
+      
+      container.appendChild(mediaItem);
+    }
+
+    // Modal functionality
+    const modal = document.getElementById('modal');
+    const modalContent = document.getElementById('modalContent');
+    const closeBtn = document.getElementById('closeBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    function openModal(index) {
+      currentIndex = index;
+      showMedia();
+      modal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function showMedia() {
+      modalContent.innerHTML = '';
+      const media = mediaUrls[currentIndex];
+      
+      // Update download link
+      downloadBtn.href = media.url;
+      downloadBtn.setAttribute('download', media.name);
+      
+      if (media.type === 'image') {
+        const img = document.createElement('img');
+        img.src = media.url;
+        img.alt = media.name;
+        img.className = 'modal-content';
+        img.style.maxWidth = '90vw';
+        img.style.maxHeight = '90vh';
+        img.style.objectFit = 'contain';
+        modalContent.appendChild(img);
+      } else {
+        const vid = document.createElement('video');
+        vid.src = media.url;
+        vid.className = 'modal-content';
+        vid.controls = true;
+        vid.autoplay = true;
+        vid.style.maxWidth = '90vw';
+        vid.style.maxHeight = '90vh';
+        vid.style.objectFit = 'contain';
+        modalContent.appendChild(vid);
+      }
+    }
+
+    function closeModal() {
+      modal.classList.remove('active');
+      document.body.style.overflow = 'auto';
+      
+      // Pause any playing videos when closing
+      const videos = modalContent.querySelectorAll('video');
+      videos.forEach(vid => vid.pause());
+    }
+
+    function showNext() {
+      // Filter by current media type if we came from a specific section
+      let filteredMedia = mediaUrls;
+      if (activeMediaType) {
+        filteredMedia = mediaUrls.filter(m => m.type === activeMediaType);
+        currentIndex = filteredMedia.findIndex(m => m.url === mediaUrls[currentIndex].url);
+      }
+      
+      currentIndex = (currentIndex + 1) % filteredMedia.length;
+      if (activeMediaType) {
+        currentIndex = mediaUrls.findIndex(m => m.url === filteredMedia[currentIndex].url);
+      }
+      showMedia();
+    }
+
+    function showPrev() {
+      // Filter by current media type if we came from a specific section
+      let filteredMedia = mediaUrls;
+      if (activeMediaType) {
+        filteredMedia = mediaUrls.filter(m => m.type === activeMediaType);
+        currentIndex = filteredMedia.findIndex(m => m.url === mediaUrls[currentIndex].url);
+      }
+      
+      currentIndex = (currentIndex - 1 + filteredMedia.length) % filteredMedia.length;
+      if (activeMediaType) {
+        currentIndex = mediaUrls.findIndex(m => m.url === filteredMedia[currentIndex].url);
+      }
+      showMedia();
+    }
+
+    // Event listeners
+    closeBtn.addEventListener('click', closeModal);
+    nextBtn.addEventListener('click', showNext);
+    prevBtn.addEventListener('click', showPrev);
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (!modal.classList.contains('active')) return;
+      
+      if (e.key === 'Escape') {
+        closeModal();
+      } else if (e.key === 'ArrowRight') {
+        showNext();
+      } else if (e.key === 'ArrowLeft') {
+        showPrev();
+      }
+    });
+    
+    // Close modal when clicking outside content
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    // Prevent modal content clicks from closing modal
+    document.querySelector('.modal-content-container').addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+  </script>
+</body>
+</html>
