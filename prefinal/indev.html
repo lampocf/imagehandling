@@ -21,10 +21,14 @@
 
     #password-protection {
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       background: rgba(0, 0, 0, 0.9);
-      display: grid;
-      place-items: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       z-index: 9999;
     }
 
@@ -57,10 +61,14 @@
 
     .media-placeholder {
       position: absolute;
-      inset: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
-      display: grid;
-      place-items: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     .loader {
@@ -76,10 +84,14 @@
 
     .modal {
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       background: rgba(0, 0, 0, 0.95);
       display: none;
-      place-items: center;
+      justify-content: center;
+      align-items: center;
       z-index: 1000;
     }
 
@@ -121,6 +133,14 @@
   </div>
 
   <script>
+    // Simple UUID generator for GitHub Pages compatibility
+    function simpleUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
     // Configuration
     const CONFIG = {
       PASSWORD: "8A",
@@ -195,7 +215,7 @@
             name: file.name,
             url: `https://cdn.jsdelivr.net/gh/${CONFIG.REPO_PATH}@main/${CONFIG.MEDIA_FOLDER}/${file.name}`,
             type: ['mp4', 'webm'].includes(file.name.split('.').pop().toLowerCase()) ? 'video' : 'image',
-            id: crypto.randomUUID()
+            id: simpleUUID() // Using our compatible UUID generator
           }));
 
         initGallery();
@@ -262,7 +282,7 @@
             state.preloadQueue.push({ id: item.id, url: item.url });
           } else {
             mediaItem.innerHTML = `
-              <div onclick="openModal('${item.url}')" style="width:100%;height:100%;display:grid;place-items:center;background:#111;cursor:pointer;">
+              <div onclick="openModal('${item.url}')" style="width:100%;height:100%;display:flex;justify-content:center;align-items:center;background:#111;cursor:pointer;">
                 <div style="font-size:24px;">▶</div>
               </div>
             `;
@@ -304,7 +324,7 @@
     // Modal functions
     function openModal(url) {
       DOM.modal.image.src = url;
-      DOM.modal.element.style.display = 'grid';
+      DOM.modal.element.style.display = 'flex';
       document.body.style.overflow = 'hidden';
     }
 
